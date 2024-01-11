@@ -2,9 +2,10 @@ const path = require("path");
 
 const express = require("express");
 const bodyParser = require("body-parser");
+const mongoose = require("mongoose");
 
 const errorController = require("./controllers/error");
-const mongoConnect = require("./util/database").mongoConnect;
+
 
 const User = require("./models/user");
 
@@ -20,9 +21,9 @@ app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.static(path.join(__dirname, "public")));
 
 app.use((req, res, next) => {
-	User.findById("659ececb236474f59716f508")
+	User.findById("659ff5eccfa4279f6cf5290e")
 		.then((user) => {
-			req.user = new User(user.name, user.emai, user.cart, user._id);
+			req.user = user;
 			next();
 		})
 		.catch((err) => console.log(err));
@@ -33,6 +34,23 @@ app.use(shopRoutes);
 
 app.use(errorController.get404);
 
-mongoConnect(() => {
-	app.listen(3000);
-});
+mongoose
+	.connect(
+		"mongodb+srv://schmittfrancois1699:cSypcNdWg69nRV3H@cluster-francois-schmit.32yl8et.mongodb.net/shop?retryWrites=true&w=majority"
+	)
+	.then((result) => {
+		User.findOne().then(user => {
+			if (!user) {
+				const user = new User({
+					name: 'Francois',
+					email: 'Francois.schmitt@gmail.com',
+					cart: {
+						items: []
+					}
+				})	
+				user.save()
+			}
+		});
+		app.listen(3000);
+	})
+	.catch((err) => console.log(err));
