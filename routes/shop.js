@@ -14,7 +14,7 @@ router.get('/products', shopController.getProducts);
 
 // // /products/2132
 
-router.get('/products/:productId', shopController.getProduct);
+router.get('/products/:productId', shopController.getProducts);
 
 router.get("/cart", isAuth, shopController.getCart);
 
