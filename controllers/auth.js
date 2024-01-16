@@ -53,13 +53,13 @@ exports.getSignup = (req, res, next) => {
 		validationErrors: [],
 	});
 };
+
 exports.postLogin = (req, res, next) => {
 	const email = req.body.email;
 	const password = req.body.password;
 
 	const errors = validationResult(req);
 	if (!errors.isEmpty()) {
-		console.log(errors.array());
 		return res.status(422).render("auth/login", {
 			path: "/login",
 			pageTitle: "Login",
@@ -68,39 +68,57 @@ exports.postLogin = (req, res, next) => {
 				email: email,
 				password: password,
 			},
-			validationErrors:[],
+			validationErrors: errors.array(),
 		});
 	}
 
 	User.findOne({ email: email })
 		.then((user) => {
 			if (!user) {
-				req.flash("err", "Invalid Email or Password");
-				return res.redirect("/login");
+				return res.status(422).render("auth/login", {
+					path: "/login",
+					pageTitle: "Login",
+					errorMessage: "Invalid email or password.",
+					oldInput: {
+						email: email,
+						password: password,
+					},
+					validationErrors: [],
+				});
 			}
-			bcrypt.compare(password, user.password).then((doMatch) => {
-				if (doMatch) {
-					req.session.user = user;
-					req.session.isLoggedIn = true;
-					return req.session.save((err) => {
-						console.log(err);
-						res.redirect("/");
+			bcrypt
+				.compare(password, user.password)
+				.then((doMatch) => {
+					if (doMatch) {
+						req.session.isLoggedIn = true;
+						req.session.user = user;
+						return req.session.save((err) => {
+							console.log(err);
+							res.redirect("/");
+						});
+					}
+					return res.status(422).render("auth/login", {
+						path: "/login",
+						pageTitle: "Login",
+						errorMessage: "Invalid email or password.",
+						oldInput: {
+							email: email,
+							password: password,
+						},
+						validationErrors: [],
 					});
-				}
-				res.redirect("/login");
-			});
-			req.flash("err", "Invalid Email or Password").catch((err) => {
-				console.log(err);
-				res.redirect("/login");
-			});
+				})
+				.catch((err) => {
+					console.log(err);
+					res.redirect("/login");
+				});
 		})
 		.catch((err) => {
 			const error = new Error(err);
 			error.httpStatusCode = 500;
-			return next(500);
+			return next(error);
 		});
 };
-
 exports.postSignup = (req, res, next) => {
 	const email = req.body.email;
 	const password = req.body.password;
